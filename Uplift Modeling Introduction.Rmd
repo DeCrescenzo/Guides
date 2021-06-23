@@ -1,0 +1,184 @@
+---
+title: "Uplift Modeling Introduction"
+author: "Rebecca DeCrescenzo"
+date: "6/23/2021"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## A Brief Intro to Uplift Modeling
+
+When discussing growth modeling, there are a variety of helpful models and metrics available (for example: churn rate, CAC to LTV ratio, the prophet model). One of my personal favorites is uplift modeling because of its ability to help marketers pinpoint which customers to target and how exactly to target those customers. 
+
+In this brief overview of uplift mdoeling, I'll run through how uplift modeling works, how to implement the models in R, why these models can be helpful for your growth efforts, and some considerations to make when evaluating your models. 
+
+### 1. How Does Uplift Modeling Work?
+
+For our discussion, let's say you are testing out the effectiveness of a welcome email blast for potential customers that signed up for your email list. In the welcome email your current call-to-action is a link to a trial membership. You are looking to see how best to leverage the welcome email segment of your marketing funnel to increase the amount of people who directly sign up for a trial membership after receiving the welcome email. 
+
+Now, there are a few groups of customers who will sign up for your email list. 
+  
+  1. Curious Adventurers - This group is interested and will need longer to commit, whether or not they receive an email
+  2. Committed Evangelists - This group in extremely interested, will sign up for the trial memmbership even without a welcome email 
+  3. Cautiously Committed - This group is excited, but not entirely sure. A small marketing touch like a welcome email can help them to commit to the trial membership.
+  4. Committed Hermits - This group will sign up for your free trial, but not if they feel that you have spammed their email. A welcome email may even make them decide to not sign up for your trial. 
+  5. Uncommitted and Possibly Pranked - This group will not sign up for your service no matter what you try. They may not have even signed themselves up at all. 
+
+
+With many predictive models when you are evaluating the overall probability that a potential customer will sign up for a free trial after receiving a welcome email. With uplift modeling, you are specifically targeting Group 3 as that is the group that is most likely to have a positive response to your welcome email. 
+
+To do this, we want to use prior marketing data to estimate the probability that a customer will sign up for the trial after receiving the welcome email minus the probability that a customer will sign up for the trial when no welcome email is sent. This is also known as the true lift estimate. 
+
+After creating your lift estimate for each customer, you may then perform a ranked sort by estimated probability to create decile and 
+
+
+
+### 2. An Example in R
+
+***
+
+*Dataset Source and Information*
+
+This dataset is a sample that was used to inform the paper "Direct Email Marketing optimization with a Random Forest based approach" (pp.189-194), which is a nice overview of utilizing random forest to help to predict email marketing campaign outcomes and was authored by Giulia De Poli, Maria Angélica Lobo Paulino, Stefania Tola, Manuela Bazzarelli, Leone De Marco and Matteo Bregonzio.
+
+**To read more about this team's work, please click here: https://zaguan.unizar.es/record/95008/files/BOOK-2020-128.pdf**
+
+Partially based on the findings from the aforementioned paper and to help with simplicity, this model will utilize the following variables. Variable descriptions are sourced from this page: https://github.com/brego81/Direct-Email-Marketing-Dataset/blob/master/README.md
+
+Each row of this dataset corresponds to a unique airline ticket purchaser or user
+
+  * age - The user's age
+  * n_purchase - Number of purchases made by the user
+  * discount_purchase - The amount of purchases by the user that used a promo code
+  * price - The original ticket price
+  * distance - The linear distance between the user's airport of origin and destination airport
+  * avg_npassengers - The average amount of passengers booked per trip
+  
+The target for this analysis is the "success" variable. This variable indicates whether a user purchased a class upgrade after receiving a marketing email. 
+
+The treatment for this analysis is the "upgrade_offered" variable. This variable describes whether or not a user was sent an upgrade offer. 
+
+***
+
+Load in the required libraries
+
+```{r, message=FALSE}
+library(uplift)
+library(smotefamily)
+```
+
+
+Read in the dataset
+
+```{r}
+emails.all = read.csv("https://raw.githubusercontent.com/brego81/Direct-Email-Marketing-Dataset/master/direct_email_marketing_database.csv", 
+                    stringsAsFactors = T)
+```
+
+Dataset with only the variables of interest included
+
+```{r}
+emails.df = emails.all[, c("age", "n_purchase", "discount_purchase", "price", "distance", "avg_npassengers", "n_sent_upgrade", "success")]
+```
+
+
+Quick Overview of the dataset
+
+```{r}
+head(emails.df, 2)
+tail(emails.df, 2)
+summary(emails.df)
+```
+
+Create binary treatment variable
+
+```{r}
+emails.df$upgrade_offered = ifelse(emails.df$n_sent_upgrade > 0, 1, 0)
+```
+
+Setting target variable as a numeric vector
+
+```{r}
+emails.df$success = ifelse(emails.df$success == "True", 1, 0)
+```
+
+
+Create train and test sets (60/40 split)
+
+```{r}
+set.seed(8410)
+train <- sample(1:nrow(emails.df), nrow(emails.df)*(0.60))
+emails.train <- emails.df[train, ]
+emails.test<-emails.df[-train, ]
+```
+
+Oversample the target variable using the SMOTE method
+
+```{r}
+predictors = emails.train[, c("age", "n_purchase","discount_purchase","price","distance", "avg_npassengers", "upgrade_offered")]
+target = emails.train[, "success"]
+oversampled.train = SMOTE(predictors, target)
+syn.train = oversampled.train$data
+```
+
+Change class and upgrade_offered variables to binary numeric to fit upliftRF requirements
+```{r}
+syn.train$success = ifelse(syn.train$class == "1", 1, 0)
+syn.train$upgrade_offered = ifelse(syn.train$upgrade_offered >= 0.5, 1, 0)
+```
+
+Standardize variable classes
+```{r}
+emails.test$n_purchase = as.numeric(emails.test$n_purchase)
+emails.test$discount_purchase = as.numeric(emails.test$discount_purchase)
+```
+
+
+Fit the model
+
+```{r}
+up.fit <- upliftRF(success ~ age + n_purchase + discount_purchase + price + 
+                     distance + avg_npassengers + trt(upgrade_offered), 
+                     data = syn.train, mtry = 5, ntree = 100, split_method = "KL",
+                   minsplit = 50, verbose = FALSE)
+```
+
+Generate predictions from the fitted model
+
+```{r}
+pred <- predict(up.fit, newdata = emails.test)
+```
+
+From this, calculate the uplift
+```{r}
+head(data.frame(pred, "uplift" = pred[,1] - pred[,2]))
+```
+
+Now you have fit a basic uplift model and calculated the uplift!
+
+**Next Steps** 
+Now you have run through this brief example here are some further steps that you can take to refine the model. 
+
+  1. Tackle the Imbalance: The data is fairly imbalanced, additional oversampling techniques such as SMOTE + ENN or SMOTE + Tomek Links could help with model performance. 
+  2. Feature Selection: Try out different features to see if they help with the model! You could experiment with the importance plots generated by random forest as well as fitting a LASSO model (which uses the L1 penalty) to see which features it identifies. 
+  3. Additional Uplift Options: It is possible that a KNN model may be of more use in this instance. Try out upliftKNN() to use uplift modeling with KNN!
+
+### 3. Benefits
+
+Earlier, we took an example of a customer acquisition experiment and an example of upselling, but these are not the only scenarios where you may wish to consider using uplift modeling. 
+
+This approach can also be used to supplement churn modeling, as a way to to target the lapsed customers that are most likely to respond well to a re-marketing effort and is especially useful when the marketing effort is costly as a way to keep customer acquisition/retention costs down. 
+
+### 4. Considerations
+
+As with modeling in general, you will want to do the standard data accuracy checks of your prior data, general bias checks, and ascertain whether the historical dataset you are using can paint a representative picture of your current customer base. 
+
+In addition to the normal considerations, uplift modeling is specifically targeting lift or positive responses because of this focus if the marketing effort that you are experimenting with has a negative (or neutral) response, then the model will not perform very well. If this is a case, you may wish to try a different model or (if you can) experiment with a marketing effort that generates a positive response. 
+
+Finally, if you do not have a past experiment with a treatment and control that you can use to create the model you can add in a step and create synthetic data to evaluate the lift if treatment and control groups had existed. 
+
+Thanks for reading this brief intro to uplift modeling! 
+
+If you have any questions, strong opinions, or just want to chat more you can reach me at rebecca.m.decrescenzo@gmail.com or at www.linkedin.com/in/rebecca-decrescenzo
