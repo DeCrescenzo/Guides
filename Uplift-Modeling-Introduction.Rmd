@@ -6,7 +6,6 @@ title: "Uplift Modeling Introduction"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## A Brief Intro to Uplift Modeling
 
 When discussing growth modeling, there are a variety of helpful models and metrics available (for example: churn rate, CAC to LTV ratio, the prophet model). One of my personal favorites is uplift modeling because of its ability to help marketers pinpoint which customers to target and how exactly to target those customers. 
 
@@ -180,3 +179,4 @@ Finally, if you do not have a past experiment with a treatment and control that 
 Thanks for reading this brief intro to uplift modeling! 
 
 If you have any questions, strong opinions, or just want to chat more you can reach me at rebecca.m.decrescenzo@gmail.com or at www.linkedin.com/in/rebecca-decrescenzo
+
