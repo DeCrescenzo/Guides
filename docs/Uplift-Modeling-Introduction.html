@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Uplift Modeling Introduction</title>
+
+<script src="site_libs/header-attrs-2.7/header-attrs.js"></script>
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Guides</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="uplift-modeling-introduction.html">Uplift Modeling Introduction</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Uplift Modeling Introduction</h1>
+
+</div>
+
+
+<div id="a-brief-intro-to-uplift-modeling" class="section level2">
+<h2>A Brief Intro to Uplift Modeling</h2>
+<p>When discussing growth modeling, there are a variety of helpful models and metrics available (for example: churn rate, CAC to LTV ratio, the prophet model). One of my personal favorites is uplift modeling because of its ability to help marketers pinpoint which customers to target and how exactly to target those customers.</p>
+<p>In this brief overview of uplift mdoeling, I’ll run through how uplift modeling works, how to implement the models in R, why these models can be helpful for your growth efforts, and some considerations to make when evaluating your models.</p>
+<div id="how-does-uplift-modeling-work" class="section level3">
+<h3>1. How Does Uplift Modeling Work?</h3>
+<p>For our discussion, let’s say you are testing out the effectiveness of a welcome email blast for potential customers that signed up for your email list. In the welcome email your current call-to-action is a link to a trial membership. You are looking to see how best to leverage the welcome email segment of your marketing funnel to increase the amount of people who directly sign up for a trial membership after receiving the welcome email.</p>
+<p>Now, there are a few groups of customers who will sign up for your email list.</p>
+<ol style="list-style-type: decimal">
+<li>Curious Adventurers - This group is interested and will need longer to commit, whether or not they receive an email</li>
+<li>Committed Evangelists - This group in extremely interested, will sign up for the trial memmbership even without a welcome email</li>
+<li>Cautiously Committed - This group is excited, but not entirely sure. A small marketing touch like a welcome email can help them to commit to the trial membership.</li>
+<li>Committed Hermits - This group will sign up for your free trial, but not if they feel that you have spammed their email. A welcome email may even make them decide to not sign up for your trial.</li>
+<li>Uncommitted and Possibly Pranked - This group will not sign up for your service no matter what you try. They may not have even signed themselves up at all.</li>
+</ol>
+<p>With many predictive models when you are evaluating the overall probability that a potential customer will sign up for a free trial after receiving a welcome email. With uplift modeling, you are specifically targeting Group 3 as that is the group that is most likely to have a positive response to your welcome email.</p>
+<p>To do this, we want to use prior marketing data to estimate the probability that a customer will sign up for the trial after receiving the welcome email minus the probability that a customer will sign up for the trial when no welcome email is sent. This is also known as the true lift estimate.</p>
+<p>After creating your lift estimate for each customer, you may then perform a ranked sort by estimated probability to create decile and</p>
+</div>
+<div id="an-example-in-r" class="section level3">
+<h3>2. An Example in R</h3>
+<hr />
+<p><em>Dataset Source and Information</em></p>
+<p>This dataset is a sample that was used to inform the paper “Direct Email Marketing optimization with a Random Forest based approach” (pp.189-194), which is a nice overview of utilizing random forest to help to predict email marketing campaign outcomes and was authored by Giulia De Poli, Maria Angélica Lobo Paulino, Stefania Tola, Manuela Bazzarelli, Leone De Marco and Matteo Bregonzio.</p>
+<p><strong>To read more about this team’s work, please click here: <a href="https://zaguan.unizar.es/record/95008/files/BOOK-2020-128.pdf" class="uri">https://zaguan.unizar.es/record/95008/files/BOOK-2020-128.pdf</a></strong></p>
+<p>Partially based on the findings from the aforementioned paper and to help with simplicity, this model will utilize the following variables. Variable descriptions are sourced from this page: <a href="https://github.com/brego81/Direct-Email-Marketing-Dataset/blob/master/README.md" class="uri">https://github.com/brego81/Direct-Email-Marketing-Dataset/blob/master/README.md</a></p>
+<p>Each row of this dataset corresponds to a unique airline ticket purchaser or user</p>
+<ul>
+<li>age - The user’s age</li>
+<li>n_purchase - Number of purchases made by the user</li>
+<li>discount_purchase - The amount of purchases by the user that used a promo code</li>
+<li>price - The original ticket price</li>
+<li>distance - The linear distance between the user’s airport of origin and destination airport</li>
+<li>avg_npassengers - The average amount of passengers booked per trip</li>
+</ul>
+<p>The target for this analysis is the “success” variable. This variable indicates whether a user purchased a class upgrade after receiving a marketing email.</p>
+<p>The treatment for this analysis is the “upgrade_offered” variable. This variable describes whether or not a user was sent an upgrade offer.</p>
+<hr />
+<p>Load in the required libraries</p>
+<pre class="r"><code>library(uplift)
+library(smotefamily)</code></pre>
+<p>Read in the dataset</p>
+<pre class="r"><code>emails.all = read.csv(&quot;https://raw.githubusercontent.com/brego81/Direct-Email-Marketing-Dataset/master/direct_email_marketing_database.csv&quot;, 
+                    stringsAsFactors = T)</code></pre>
+<p>Dataset with only the variables of interest included</p>
+<pre class="r"><code>emails.df = emails.all[, c(&quot;age&quot;, &quot;n_purchase&quot;, &quot;discount_purchase&quot;, &quot;price&quot;, &quot;distance&quot;, &quot;avg_npassengers&quot;, &quot;n_sent_upgrade&quot;, &quot;success&quot;)]</code></pre>
+<p>Quick Overview of the dataset</p>
+<pre class="r"><code>head(emails.df, 2)</code></pre>
+<pre><code>##        age n_purchase discount_purchase price distance avg_npassengers n_sent_upgrade success
+## 1 54.23573         14                14  35.9    565.9               1              0   False
+## 2 54.23573         14                 0  35.9    565.9               1              2   False</code></pre>
+<pre class="r"><code>tail(emails.df, 2)</code></pre>
+<pre><code>##            age n_purchase discount_purchase price distance avg_npassengers n_sent_upgrade success
+## 38142 42.97545          4                 2  64.9    565.9               1              0   False
+## 38143 26.35902          1                 1  18.0    565.9               1              0   False</code></pre>
+<pre class="r"><code>summary(emails.df)</code></pre>
+<pre><code>##       age           n_purchase    discount_purchase     price           distance      avg_npassengers 
+##  Min.   : 18.33   Min.   :  1.0   Min.   : 0.000    Min.   :  0.00   Min.   : 30.17   Min.   : 1.000  
+##  1st Qu.: 28.14   1st Qu.:  4.0   1st Qu.: 1.000    1st Qu.: 21.90   1st Qu.:478.40   1st Qu.: 1.000  
+##  Median : 38.15   Median :  8.0   Median : 1.000    Median : 26.90   Median :565.90   Median : 1.400  
+##  Mean   : 40.66   Mean   : 10.6   Mean   : 2.205    Mean   : 30.07   Mean   :554.16   Mean   : 1.761  
+##  3rd Qu.: 52.02   3rd Qu.: 13.0   3rd Qu.: 3.000    3rd Qu.: 31.90   3rd Qu.:569.90   3rd Qu.: 2.000  
+##  Max.   :119.93   Max.   :326.0   Max.   :70.000    Max.   :119.00   Max.   :981.20   Max.   :14.365  
+##  n_sent_upgrade    success     
+##  Min.   :0.0000   False:36246  
+##  1st Qu.:0.0000   True : 1897  
+##  Median :0.0000                
+##  Mean   :0.1834                
+##  3rd Qu.:0.0000                
+##  Max.   :7.0000</code></pre>
+<p>Create binary treatment variable</p>
+<pre class="r"><code>emails.df$upgrade_offered = ifelse(emails.df$n_sent_upgrade &gt; 0, 1, 0)</code></pre>
+<p>Setting target variable as a numeric vector</p>
+<pre class="r"><code>emails.df$success = ifelse(emails.df$success == &quot;True&quot;, 1, 0)</code></pre>
+<p>Create train and test sets (60/40 split)</p>
+<pre class="r"><code>set.seed(8410)
+train &lt;- sample(1:nrow(emails.df), nrow(emails.df)*(0.60))
+emails.train &lt;- emails.df[train, ]
+emails.test&lt;-emails.df[-train, ]</code></pre>
+<p>Oversample the target variable using the SMOTE method</p>
+<pre class="r"><code>predictors = emails.train[, c(&quot;age&quot;, &quot;n_purchase&quot;,&quot;discount_purchase&quot;,&quot;price&quot;,&quot;distance&quot;, &quot;avg_npassengers&quot;, &quot;upgrade_offered&quot;)]
+target = emails.train[, &quot;success&quot;]
+oversampled.train = SMOTE(predictors, target)
+syn.train = oversampled.train$data</code></pre>
+<p>Change class and upgrade_offered variables to binary numeric to fit upliftRF requirements</p>
+<pre class="r"><code>syn.train$success = ifelse(syn.train$class == &quot;1&quot;, 1, 0)
+syn.train$upgrade_offered = ifelse(syn.train$upgrade_offered &gt;= 0.5, 1, 0)</code></pre>
+<p>Standardize variable classes</p>
+<pre class="r"><code>emails.test$n_purchase = as.numeric(emails.test$n_purchase)
+emails.test$discount_purchase = as.numeric(emails.test$discount_purchase)</code></pre>
+<p>Fit the model</p>
+<pre class="r"><code>up.fit &lt;- upliftRF(success ~ age + n_purchase + discount_purchase + price + 
+                     distance + avg_npassengers + trt(upgrade_offered), 
+                     data = syn.train, mtry = 5, ntree = 100, split_method = &quot;KL&quot;,
+                   minsplit = 50, verbose = FALSE)</code></pre>
+<p>Generate predictions from the fitted model</p>
+<pre class="r"><code>pred &lt;- predict(up.fit, newdata = emails.test)</code></pre>
+<p>From this, calculate the uplift</p>
+<pre class="r"><code>head(data.frame(pred, &quot;uplift&quot; = pred[,1] - pred[,2]))</code></pre>
+<pre><code>##   pr.y1_ct1 pr.y1_ct0    uplift
+## 1  0.000000  0.434089 -0.434089
+## 2  0.089313  0.640368 -0.551055
+## 3  0.000000  0.434089 -0.434089
+## 4  0.054387  0.426197 -0.371810
+## 5  0.502624  0.347376  0.155248
+## 6  0.478744  0.380685  0.098059</code></pre>
+<p>Now you have fit a basic uplift model and calculated the uplift!</p>
+<p><strong>Next Steps</strong> Now you have run through this brief example here are some further steps that you can take to refine the model.</p>
+<ol style="list-style-type: decimal">
+<li>Tackle the Imbalance: The data is fairly imbalanced, additional oversampling techniques such as SMOTE + ENN or SMOTE + Tomek Links could help with model performance.</li>
+<li>Feature Selection: Try out different features to see if they help with the model! You could experiment with the importance plots generated by random forest as well as fitting a LASSO model (which uses the L1 penalty) to see which features it identifies.</li>
+<li>Additional Uplift Options: It is possible that a KNN model may be of more use in this instance. Try out upliftKNN() to use uplift modeling with KNN!</li>
+</ol>
+</div>
+<div id="benefits" class="section level3">
+<h3>3. Benefits</h3>
+<p>Earlier, we took an example of a customer acquisition experiment and an example of upselling, but these are not the only scenarios where you may wish to consider using uplift modeling.</p>
+<p>This approach can also be used to supplement churn modeling, as a way to to target the lapsed customers that are most likely to respond well to a re-marketing effort and is especially useful when the marketing effort is costly as a way to keep customer acquisition/retention costs down.</p>
+</div>
+<div id="considerations" class="section level3">
+<h3>4. Considerations</h3>
+<p>As with modeling in general, you will want to do the standard data accuracy checks of your prior data, general bias checks, and ascertain whether the historical dataset you are using can paint a representative picture of your current customer base.</p>
+<p>In addition to the normal considerations, uplift modeling is specifically targeting lift or positive responses because of this focus if the marketing effort that you are experimenting with has a negative (or neutral) response, then the model will not perform very well. If this is a case, you may wish to try a different model or (if you can) experiment with a marketing effort that generates a positive response.</p>
+<p>Finally, if you do not have a past experiment with a treatment and control that you can use to create the model you can add in a step and create synthetic data to evaluate the lift if treatment and control groups had existed.</p>
+<p>Thanks for reading this brief intro to uplift modeling!</p>
+<p>If you have any questions, strong opinions, or just want to chat more you can reach me at <a href="mailto:rebecca.m.decrescenzo@gmail.com" class="email">rebecca.m.decrescenzo@gmail.com</a> or at www.linkedin.com/in/rebecca-decrescenzo</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

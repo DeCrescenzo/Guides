@@ -1,0 +1,12 @@
+name: "guides"
+output_dir: "docs"
+navbar:
+  title: "Guides"
+  left:
+  - text: "Home"
+    href: index.html
+  - text: "Uplift Modeling Introduction"
+    href: uplift-modeling-introduction.html
+output:
+  html_document:
+    theme: cosmo
