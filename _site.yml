@@ -6,7 +6,7 @@ navbar:
   - text: "Home"
     href: index.html
   - text: "Uplift Modeling Introduction"
-    href: uplift-modeling-introduction.html
+    href: Uplift-Modeling-Introduction.html
 output:
   html_document:
     theme: cosmo
